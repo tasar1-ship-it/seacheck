@@ -1,5 +1,5 @@
 // Sea Check service worker — offline cache
-var CACHE = 'seacheck-v2';
+var CACHE = 'seacheck-v3';
 var ASSETS = [
   './',
   './index.html',
