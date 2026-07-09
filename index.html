@@ -65,12 +65,11 @@
 
   /* ---------- Tabs ---------- */
   .tabs{display:flex;gap:10px;margin:18px 0 6px}
-  .tab{flex:1;border:1.5px solid var(--line);border-radius:15px;padding:12px 6px;cursor:pointer;
+  .tab{flex:1;border:1.5px solid var(--line);border-radius:15px;padding:15px 6px;cursor:pointer;
     background:rgba(255,255,255,.02);color:var(--mut);font-family:var(--disp);font-weight:700;
-    font-size:12.5px;letter-spacing:.4px;text-transform:uppercase;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:5px;text-align:center;line-height:1.15;min-height:66px;
+    font-size:14px;letter-spacing:.5px;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:7px;
     transition:transform .12s, border-color .2s, color .2s, box-shadow .2s, background .2s}
-  .tab .i{font-size:20px}
+  .tab .i{font-size:16px}
   .tab.active{border-color:var(--lime);color:var(--lime);background:rgba(180,240,60,.06);
     box-shadow:0 0 0 1px var(--lime),0 0 22px rgba(180,240,60,.22)}
   .tab:active{transform:scale(.97)}
@@ -176,25 +175,6 @@
     </div>
   </div>
 
-  <div class="levelcard">
-    <div class="ring">
-      <svg width="92" height="92" viewBox="0 0 92 92">
-        <defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#37D3EA"/><stop offset="1" stop-color="#8B5CF6"/>
-        </linearGradient></defs>
-        <circle cx="46" cy="46" r="40" fill="none" stroke="rgba(255,255,255,.09)" stroke-width="8"/>
-        <circle id="ringProg" cx="46" cy="46" r="40" fill="none" stroke="url(#rg)" stroke-width="8"
-          stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="251.3"/>
-      </svg>
-      <div class="ctr"><span class="lbl">LVL</span><span class="num" id="lvl">0</span></div>
-    </div>
-    <div class="levelinfo">
-      <div class="rank" id="rank">Stowaway</div>
-      <div class="sub" id="lvlsub">0 XP to next rank</div>
-      <div class="xpbar"><i id="xpfill" style="width:0%"></i></div>
-    </div>
-  </div>
-
   <div class="tabs" id="tabs"></div>
 
   <div class="quest">
@@ -244,12 +224,12 @@ var RANKS = [
   {lvl:7, name:'Admiral',    xp:1000}
 ];
 var DEFAULT_TEMPLATES = {
-  summer:{ name:'Summer Sailing', ico:'☀️', sections:[
+  summer:{ name:'Sailing', ico:'☀️', sections:[
     {title:'Sailing gear', items:['Life jacket','Sailing shoes','Sailing gloves','Cap + sunglasses','Rash guard']},
     {title:'Sun & water', items:['Sunscreen','Big water bottle','Snacks']},
     {title:'Boat kit', items:['Sail','Daggerboard + rudder','Sprit & lines','Bailer']}
   ]},
-  winter:{ name:'Winter Sailing', ico:'❄️', sections:[
+  winter:{ name:'Sailing', ico:'❄️', sections:[
     {title:'Sailing gear', items:['Wetsuit','Spray top','Neoprene boots','Neoprene gloves','Beanie']},
     {title:'Warm & dry', items:['Towel','Full change of clothes','Warm jacket for shore','Thermos with hot drink']},
     {title:'Boat kit', items:['Sail','Daggerboard + rudder','Lines','Bailer']}
@@ -343,7 +323,7 @@ var sfx={
 
 /* ================= Render ================= */
 function tpl(){ return state.templates[state.active]; }
-function render(){ renderStats(); renderLevel(); renderTabs(); renderQuest(); renderSections(); }
+function render(){ renderStats(); renderTabs(); renderQuest(); renderSections(); }
 
 function renderStats(){
   document.getElementById('flame').textContent=state.flame;
@@ -424,22 +404,14 @@ function toggleItem(si,id,row){
   if(!item) return;
   if(!item.done){
     item.done=true;
-    var leveled=false;
-    if(!item.awarded){
-      item.awarded=true;
-      var before=levelInfo(state.xp).lvl;
-      state.xp+=XP_PER_ITEM;
-      leveled=levelInfo(state.xp).lvl>before;
-    }
+    if(!item.awarded){ item.awarded=true; state.xp+=XP_PER_ITEM; }
     sfx.check();
     if(row){ row.classList.add('pop'); setTimeout(function(){ row.classList.remove('pop'); },400); }
     save(); render();
     var c=counts();
     if(c.total>0 && c.done===c.total && !t.rewarded){
       t.rewarded=true; state.flame+=1; save(); render();
-      setTimeout(function(){ celebrateComplete(leveled); },350);
-    } else if(leveled){
-      setTimeout(function(){ celebrateLevel(); },260);
+      setTimeout(function(){ celebrateComplete(); },350);
     }
   } else {
     item.done=false; t.rewarded=false; sfx.uncheck(); save(); render();
@@ -509,25 +481,13 @@ function sparks(){
     })(s,ang,dist,dur);
   }
 }
-function celebrateComplete(leveled){
+function celebrateComplete(){
   document.getElementById('badge').innerHTML=BADGE_COMPLETE;
   document.getElementById('ovKicker').textContent=tpl().name;
   document.getElementById('ovTitle').textContent='All Packed!';
-  var L=levelInfo(state.xp);
-  var msg='Everything packed — you\u2019re cleared to launch.';
-  if(leveled) msg+=' And you levelled up to '+L.name+'!';
-  document.getElementById('ovMsg').textContent=msg;
+  document.getElementById('ovMsg').textContent='Everything packed — you\u2019re cleared to launch. Fair winds!';
   document.getElementById('overlay').classList.add('show');
   sfx.fanfare(); sparks(); renderStats();
-}
-function celebrateLevel(){
-  document.getElementById('badge').innerHTML=BADGE_LEVEL;
-  var L=levelInfo(state.xp);
-  document.getElementById('ovKicker').textContent='Level '+L.lvl;
-  document.getElementById('ovTitle').textContent='Level Up!';
-  document.getElementById('ovMsg').textContent='You\u2019re now a '+L.name+'. Keep packing to reach the next rank.';
-  document.getElementById('overlay').classList.add('show');
-  sfx.levelup(); sparks(); renderStats();
 }
 document.getElementById('ovClose').onclick=function(){ document.getElementById('overlay').classList.remove('show'); };
 
