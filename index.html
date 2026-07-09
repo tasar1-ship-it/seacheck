@@ -65,11 +65,12 @@
 
   /* ---------- Tabs ---------- */
   .tabs{display:flex;gap:10px;margin:18px 0 6px}
-  .tab{flex:1;border:1.5px solid var(--line);border-radius:15px;padding:15px 6px;cursor:pointer;
+  .tab{flex:1;border:1.5px solid var(--line);border-radius:15px;padding:12px 6px;cursor:pointer;
     background:rgba(255,255,255,.02);color:var(--mut);font-family:var(--disp);font-weight:700;
-    font-size:14px;letter-spacing:.5px;text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:7px;
+    font-size:12.5px;letter-spacing:.4px;text-transform:uppercase;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:5px;text-align:center;line-height:1.15;min-height:66px;
     transition:transform .12s, border-color .2s, color .2s, box-shadow .2s, background .2s}
-  .tab .i{font-size:16px}
+  .tab .i{font-size:20px}
   .tab.active{border-color:var(--lime);color:var(--lime);background:rgba(180,240,60,.06);
     box-shadow:0 0 0 1px var(--lime),0 0 22px rgba(180,240,60,.22)}
   .tab:active{transform:scale(.97)}
@@ -168,7 +169,7 @@
 <body>
 <div class="wrap">
   <div class="top">
-    <div class="brand"><h1>SEA<br><span class="c">CHECK</span></h1></div>
+    <div class="brand"><h1>Lukas&rsquo;<br><span class="c">Checklists</span></h1></div>
     <div class="stats">
       <div class="pill flame">🔥 <span id="flame">0</span></div>
       <div class="pill xp"><span id="xp">0</span> <small>XP</small></div>
@@ -210,7 +211,7 @@
 
 <div class="dock">
   <div class="dock-inner">
-    <button class="btn newtrip" id="btnReset">+ Trip</button>
+    <button class="btn newtrip" id="btnReset">New Trip</button>
     <button class="btn edit" id="btnEdit">Edit list</button>
     <button class="btn sound" id="btnSound">🔊</button>
   </div>
@@ -243,12 +244,12 @@ var RANKS = [
   {lvl:7, name:'Admiral',    xp:1000}
 ];
 var DEFAULT_TEMPLATES = {
-  summer:{ name:'Summer', ico:'☀️', sections:[
+  summer:{ name:'Summer Sailing', ico:'☀️', sections:[
     {title:'Sailing gear', items:['Life jacket','Sailing shoes','Sailing gloves','Cap + sunglasses','Rash guard']},
     {title:'Sun & water', items:['Sunscreen','Big water bottle','Snacks']},
     {title:'Boat kit', items:['Sail','Daggerboard + rudder','Sprit & lines','Bailer']}
   ]},
-  winter:{ name:'Winter', ico:'❄️', sections:[
+  winter:{ name:'Winter Sailing', ico:'❄️', sections:[
     {title:'Sailing gear', items:['Wetsuit','Spray top','Neoprene boots','Neoprene gloves','Beanie']},
     {title:'Warm & dry', items:['Towel','Full change of clothes','Warm jacket for shore','Thermos with hot drink']},
     {title:'Boat kit', items:['Sail','Daggerboard + rudder','Lines','Bailer']}
@@ -285,9 +286,18 @@ function freshState(){
   });
   return { xp:0, flame:0, sound:true, active:'summer', templates:t };
 }
+function reconcileLabels(){
+  if(!state || !state.templates) return;
+  Object.keys(DEFAULT_TEMPLATES).forEach(function(k){
+    if(state.templates[k]){
+      state.templates[k].name=DEFAULT_TEMPLATES[k].name;   // presentation only
+      state.templates[k].ico=DEFAULT_TEMPLATES[k].ico;
+    }
+  });
+}
 function loadState(){
   var raw=Store.get(STORE_KEY);
-  if(raw){ try{ state=JSON.parse(raw); return; }catch(e){} }
+  if(raw){ try{ state=JSON.parse(raw); reconcileLabels(); return; }catch(e){} }
   state=freshState();
 }
 function save(){
@@ -364,7 +374,7 @@ function counts(){ var total=0,done=0;
   return {total:total,done:done}; }
 function renderQuest(){
   var c=counts(), pct=c.total?Math.round(100*c.done/c.total):0;
-  document.getElementById('questName').textContent=tpl().name+' quest';
+  document.getElementById('questName').textContent='Progress';
   document.getElementById('pct').textContent=pct+'%';
   document.getElementById('qfill').style.width=pct+'%';
   document.getElementById('questSub').textContent=c.done+' of '+c.total+' packed';
@@ -382,7 +392,11 @@ function renderSections(){
       box.innerHTML='<svg viewBox="0 0 24 24"><polyline points="4,13 10,19 20,6"/></svg>';
       row.appendChild(box);
       if(item.photo){ var img=document.createElement('img'); img.className='thumb'; img.src=item.photo; img.alt=''; row.appendChild(img); }
-      var txt=document.createElement('div'); txt.className='txt'; txt.textContent=item.text; row.appendChild(txt);
+      var txt=document.createElement('div'); txt.className='txt'; txt.textContent=item.text;
+      txt.onclick=function(ev){
+        if(document.body.classList.contains('editing')){ ev.stopPropagation(); renameItem(si,item.id); }
+      };
+      row.appendChild(txt);
       var xpv=document.createElement('div'); xpv.className='xpv'; xpv.textContent='+'+XP_PER_ITEM; row.appendChild(xpv);
       var del=document.createElement('button'); del.className='del'; del.textContent='✕';
       del.onclick=function(ev){ ev.stopPropagation(); deleteItem(si,item.id); };
@@ -434,6 +448,16 @@ function toggleItem(si,id,row){
 function addTextItem(si,text){ text=(text||'').trim(); if(!text)return;
   tpl().sections[si].items.push({id:'u'+Date.now(),text:text,done:false,awarded:false,photo:null});
   sfx.check(); save(); render(); showToast('Added: '+text); document.body.classList.add('editing'); }
+function renameItem(si,id){
+  var items=tpl().sections[si].items, item=null;
+  for(var i=0;i<items.length;i++){ if(items[i].id===id){ item=items[i]; break; } }
+  if(!item) return;
+  var current = (item.text.indexOf('Photo item')===0) ? '' : item.text;
+  var next = window.prompt('Rename this item:', current);
+  if(next===null) return;                 // cancelled
+  next=next.trim(); if(!next) return;      // empty = keep old
+  item.text=next; sfx.check(); save(); render(); document.body.classList.add('editing');
+}
 function deleteItem(si,id){ var items=tpl().sections[si].items,idx=-1;
   for(var i=0;i<items.length;i++){ if(items[i].id===id){ idx=i; break; } }
   if(idx>=0){ items.splice(idx,1); sfx.uncheck(); save(); render(); document.body.classList.add('editing'); } }
@@ -487,8 +511,8 @@ function sparks(){
 }
 function celebrateComplete(leveled){
   document.getElementById('badge').innerHTML=BADGE_COMPLETE;
-  document.getElementById('ovKicker').textContent=tpl().name+' quest';
-  document.getElementById('ovTitle').textContent='Quest Complete!';
+  document.getElementById('ovKicker').textContent=tpl().name;
+  document.getElementById('ovTitle').textContent='All Packed!';
   var L=levelInfo(state.xp);
   var msg='Everything packed — you\u2019re cleared to launch.';
   if(leveled) msg+=' And you levelled up to '+L.name+'!';
@@ -517,7 +541,8 @@ document.getElementById('btnReset').onclick=function(){
   if(confirm('Start a new trip? All checks clear. Items and photos stay. (Your XP and rank are kept.)')) resetTrip(); };
 document.getElementById('btnEdit').onclick=function(){
   var on=document.body.classList.toggle('editing');
-  this.classList.toggle('on',on); this.textContent=on?'Done':'Edit list'; sfx.switch(); };
+  this.classList.toggle('on',on); this.textContent=on?'Done':'Edit list'; sfx.switch();
+  if(on) showToast('Tap an item\u2019s name to rename it'); };
 document.getElementById('btnSound').onclick=function(){ state.sound=!state.sound; save(); renderStats(); if(state.sound) sfx.check(); };
 
 /* ================= Boot ================= */
