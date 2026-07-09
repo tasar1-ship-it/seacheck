@@ -169,10 +169,6 @@
 <div class="wrap">
   <div class="top">
     <div class="brand"><h1>Lukas&rsquo;<br><span class="c">Checklists</span></h1></div>
-    <div class="stats">
-      <div class="pill flame">🔥 <span id="flame">0</span></div>
-      <div class="pill xp"><span id="xp">0</span> <small>XP</small></div>
-    </div>
   </div>
 
   <div class="tabs" id="tabs"></div>
@@ -326,8 +322,6 @@ function tpl(){ return state.templates[state.active]; }
 function render(){ renderStats(); renderTabs(); renderQuest(); renderSections(); }
 
 function renderStats(){
-  document.getElementById('flame').textContent=state.flame;
-  document.getElementById('xp').textContent=state.xp;
   document.getElementById('btnSound').textContent=state.sound?'🔊':'🔇';
 }
 function renderLevel(){
@@ -377,7 +371,6 @@ function renderSections(){
         if(document.body.classList.contains('editing')){ ev.stopPropagation(); renameItem(si,item.id); }
       };
       row.appendChild(txt);
-      var xpv=document.createElement('div'); xpv.className='xpv'; xpv.textContent='+'+XP_PER_ITEM; row.appendChild(xpv);
       var del=document.createElement('button'); del.className='del'; del.textContent='✕';
       del.onclick=function(ev){ ev.stopPropagation(); deleteItem(si,item.id); };
       row.appendChild(del);
@@ -404,13 +397,12 @@ function toggleItem(si,id,row){
   if(!item) return;
   if(!item.done){
     item.done=true;
-    if(!item.awarded){ item.awarded=true; state.xp+=XP_PER_ITEM; }
     sfx.check();
     if(row){ row.classList.add('pop'); setTimeout(function(){ row.classList.remove('pop'); },400); }
     save(); render();
     var c=counts();
     if(c.total>0 && c.done===c.total && !t.rewarded){
-      t.rewarded=true; state.flame+=1; save(); render();
+      t.rewarded=true; save(); render();
       setTimeout(function(){ celebrateComplete(); },350);
     }
   } else {
